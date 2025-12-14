@@ -116,4 +116,5 @@ def main():
         save_state(state)
 
 if __name__ == "__main__":
+    send_telegram("🧪 Test message: Facebook Page Watcher is running successfully ✅")
     main()
