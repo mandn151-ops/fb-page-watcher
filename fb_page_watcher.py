@@ -51,7 +51,7 @@ def save_state(state):
 
 def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Telegram not configured.")
+        print("❌ Telegram not configured")
         return
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -62,7 +62,7 @@ def send_telegram(message):
     }
 
     r = requests.post(url, json=payload, timeout=30)
-    print("Telegram response:", r.text)
+    print("📨 Telegram response:", r.text)
 
 def hash_key(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -101,11 +101,12 @@ def check_page(page_url, state):
         }
 
     except Exception as e:
-        print(f"Error checking {page_url}: {e}")
+        print(f"❌ Error checking {page_url}: {e}")
         return None
 
 def main():
-    send_telegram("▶️ Facebook watcher executed")
+    # 🔔 رسالة تأكيد تشغيل
+    send_telegram("▶️ Facebook Page Watcher started successfully")
 
     state = load_state()
     results = []
@@ -126,7 +127,10 @@ def main():
 
         send_telegram(message)
         save_state(state)
-        print(f"Sent {len(results)} updates")
+        print(f"✅ Sent {len(results)} updates")
     else:
-        print("No new photos")
+        print("ℹ️ No new photos found")
 
+# ====== ENTRY POINT (مهم جدًا) ======
+if __name__ == "__main__":
+    main()
