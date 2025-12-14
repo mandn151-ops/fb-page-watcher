@@ -105,8 +105,7 @@ def check_page(page_url, state):
         return None
 
 def main():
-    # 🧪 رسالة تأكيد تشغيل
-    send_telegram("▶️ Facebook Page Watcher executed")
+    send_telegram("▶️ Facebook watcher executed")
 
     state = load_state()
     results = []
@@ -131,5 +130,3 @@ def main():
     else:
         print("No new photos")
 
-if __name__ == "__main__":
-    main()
