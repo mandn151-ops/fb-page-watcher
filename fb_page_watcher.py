@@ -33,6 +33,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 STATE_FILE = "state.json"
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; fb-page-watcher/1.0)"
 }
@@ -59,7 +60,9 @@ def send_telegram(message):
         "text": message,
         "disable_web_page_preview": True
     }
-    requests.post(url, json=payload, timeout=30)
+
+    r = requests.post(url, json=payload, timeout=30)
+    print("Telegram response:", r.text)
 
 def hash_key(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -77,10 +80,7 @@ def check_page(page_url, state):
         # ✅ صور فقط
         photo_links = [
             l for l in links
-            if l and (
-                "/photos/" in l or
-                "photo.php" in l
-            )
+            if l and ("/photos/" in l or "photo.php" in l)
         ]
 
         if not photo_links:
@@ -105,6 +105,9 @@ def check_page(page_url, state):
         return None
 
 def main():
+    # 🧪 رسالة تأكيد تشغيل
+    send_telegram("▶️ Facebook Page Watcher executed")
+
     state = load_state()
     results = []
 
