@@ -43,7 +43,9 @@ def load_state():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {}
+    return {
+        "_checks": 0
+    }
 
 def save_state(state):
     with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -70,7 +72,6 @@ def hash_key(text):
 # ================= CORE =================
 def check_page(page_url, state):
     try:
-        # 🔑 استخدام mbasic (مهم جدًا)
         mbasic_url = page_url.replace("www.facebook.com", "mbasic.facebook.com")
 
         r = requests.get(mbasic_url, headers=HEADERS, timeout=30)
@@ -80,7 +81,6 @@ def check_page(page_url, state):
         soup = BeautifulSoup(r.text, "html.parser")
         links = [a.get("href") for a in soup.find_all("a", href=True)]
 
-        # 📸 صور فقط
         photo_links = [
             l for l in links
             if l and ("photo.php" in l or "/photos/" in l)
@@ -111,10 +111,14 @@ def check_page(page_url, state):
 
 # ================= MAIN =================
 def main():
-    # 🔔 رسالة تشغيل (حسب طلبك)
-    send_telegram("▶️ Facebook Page Watcher started successfully")
-
     state = load_state()
+    state["_checks"] = state.get("_checks", 0) + 1
+
+    check_number = state["_checks"]
+
+    # 🔔 رسالة تشغيل
+    send_telegram(f"▶️ Facebook Page Watcher started successfully\n⏱️ الفحص رقم {check_number}")
+
     results = []
 
     for page in PAGES:
@@ -122,9 +126,9 @@ def main():
         if result:
             results.append(result)
 
-    if results:
-        now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
+    if results:
         message = "📸 صور جديدة على فيسبوك\n"
         message += f"🕒 {now}\n\n"
 
@@ -132,10 +136,14 @@ def main():
             message += f"🟢 {r['page']}\n{r['link']}\n\n"
 
         send_telegram(message)
-        save_state(state)
-        print(f"✅ Sent {len(results)} updates")
     else:
-        print("ℹ️ No new photos found")
+        send_telegram(
+            f"⏱️ فحص الصفحات تم – لا صور جديدة\n"
+            f"🔁 الفحص رقم {check_number}\n"
+            f"🕒 {now}"
+        )
+
+    save_state(state)
 
 # ================= ENTRY =================
 if __name__ == "__main__":
