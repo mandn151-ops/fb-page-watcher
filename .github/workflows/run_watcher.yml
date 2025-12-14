@@ -24,6 +24,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
+      # 🔔 اختبار تيليجرام مباشر (مهم)
+      - name: Telegram direct test
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="🧪 Direct Telegram test from GitHub Actions ✅"
+
+      # ▶️ تشغيل السكربت
       - name: Run watcher
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
