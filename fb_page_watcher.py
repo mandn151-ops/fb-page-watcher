@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import hashlib
 
-# ====== CONFIG ======
+# ================= CONFIG =================
 PAGES = [
     "https://www.facebook.com/smartbuyjo",
     "https://www.facebook.com/MeccaMallJordan",
@@ -38,7 +38,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; fb-page-watcher/1.0)"
 }
 
-# ====== HELPERS ======
+# ================= HELPERS =================
 def load_state():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
@@ -62,25 +62,28 @@ def send_telegram(message):
     }
 
     r = requests.post(url, json=payload, timeout=30)
-    print("📨 Telegram response:", r.text)
+    print("📨 Telegram:", r.status_code)
 
 def hash_key(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-# ====== CORE ======
+# ================= CORE =================
 def check_page(page_url, state):
     try:
-        r = requests.get(page_url, headers=HEADERS, timeout=30)
+        # 🔑 استخدام mbasic (مهم جدًا)
+        mbasic_url = page_url.replace("www.facebook.com", "mbasic.facebook.com")
+
+        r = requests.get(mbasic_url, headers=HEADERS, timeout=30)
         if r.status_code != 200:
             return None
 
         soup = BeautifulSoup(r.text, "html.parser")
         links = [a.get("href") for a in soup.find_all("a", href=True)]
 
-        # ✅ صور فقط
+        # 📸 صور فقط
         photo_links = [
             l for l in links
-            if l and ("/photos/" in l or "photo.php" in l)
+            if l and ("photo.php" in l or "/photos/" in l)
         ]
 
         if not photo_links:
@@ -95,17 +98,20 @@ def check_page(page_url, state):
         state[key] = latest
 
         page_name = page_url.replace("https://www.facebook.com/", "")
+        full_link = f"https://www.facebook.com{latest}"
+
         return {
             "page": page_name,
-            "link": latest
+            "link": full_link
         }
 
     except Exception as e:
         print(f"❌ Error checking {page_url}: {e}")
         return None
 
+# ================= MAIN =================
 def main():
-    # 🔔 رسالة تأكيد تشغيل
+    # 🔔 رسالة تشغيل (حسب طلبك)
     send_telegram("▶️ Facebook Page Watcher started successfully")
 
     state = load_state()
@@ -123,7 +129,7 @@ def main():
         message += f"🕒 {now}\n\n"
 
         for r in results:
-            message += f"• {r['page']}\n{r['link']}\n\n"
+            message += f"🟢 {r['page']}\n{r['link']}\n\n"
 
         send_telegram(message)
         save_state(state)
@@ -131,6 +137,6 @@ def main():
     else:
         print("ℹ️ No new photos found")
 
-# ====== ENTRY POINT (مهم جدًا) ======
+# ================= ENTRY =================
 if __name__ == "__main__":
     main()
