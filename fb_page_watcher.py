@@ -52,6 +52,7 @@ def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram not configured.")
         return
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -60,7 +61,7 @@ def send_telegram(message):
     }
     requests.post(url, json=payload, timeout=30)
 
-def hash_text(text):
+def hash_key(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 # ====== CORE ======
@@ -71,32 +72,33 @@ def check_page(page_url, state):
             return None
 
         soup = BeautifulSoup(r.text, "html.parser")
-
-        # crude heuristic: look for first link to a post
         links = [a.get("href") for a in soup.find_all("a", href=True)]
-        post_links = [l for l in links if "/posts/" in l or "/photos/" in l]
 
-        if not post_links:
+        # ✅ صور فقط
+        photo_links = [
+            l for l in links
+            if l and (
+                "/photos/" in l or
+                "photo.php" in l
+            )
+        ]
+
+        if not photo_links:
             return None
 
-        latest = post_links[0]
-        key = hash_text(page_url)
+        latest = photo_links[0]
+        key = hash_key(page_url)
 
         if state.get(key) == latest:
             return None
 
         state[key] = latest
-        page_name = page_url.replace("https://www.facebook.com/", "")
-        now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
-        message = (
-            "📢 بوست صور جديد على فيسبوك\n\n"
-            f"📄 الصفحة: {page_name}\n"
-            f"🕒 الوقت: {now}\n\n"
-            "🔗 رابط البوست:\n"
-            f"{latest}"
-        )
-        return message
+        page_name = page_url.replace("https://www.facebook.com/", "")
+        return {
+            "page": page_name,
+            "link": latest
+        }
 
     except Exception as e:
         print(f"Error checking {page_url}: {e}")
@@ -104,17 +106,27 @@ def check_page(page_url, state):
 
 def main():
     state = load_state()
-    updated = False
+    results = []
 
     for page in PAGES:
-        msg = check_page(page, state)
-        if msg:
-            send_telegram(msg)
-            updated = True
+        result = check_page(page, state)
+        if result:
+            results.append(result)
 
-    if updated:
+    if results:
+        now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+        message = "📸 صور جديدة على فيسبوك\n"
+        message += f"🕒 {now}\n\n"
+
+        for r in results:
+            message += f"• {r['page']}\n{r['link']}\n\n"
+
+        send_telegram(message)
         save_state(state)
+        print(f"Sent {len(results)} updates")
+    else:
+        print("No new photos")
 
 if __name__ == "__main__":
-    send_telegram("🧪 Test message: Facebook Page Watcher is running successfully ✅")
     main()
